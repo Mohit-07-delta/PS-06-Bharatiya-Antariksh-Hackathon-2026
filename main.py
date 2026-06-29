@@ -17,9 +17,9 @@ app.add_middleware(
 # LOAD THE PRE-TRAINED AI MODEL
 try:
     rf_model = joblib.load('crop_rf_model.pkl')
-    print("✅ ML Model loaded successfully!")
+    print("ML Model loaded successfully!")
 except Exception as e:
-    print("⚠️ Warning: Model not found. Run train_model.py first.")
+    print("Warning: Model not found. Run train_model.py first.")
     rf_model = None
 
 @app.get("/api/farms")
