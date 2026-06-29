@@ -7,7 +7,7 @@ export default function MapWidget({ onFarmSelect }) {
 
   useEffect(() => {
     // Fetch the mock farms from your FastAPI backend
-    fetch('http://localhost:8000/api/farms')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/farms`)
       .then(res => res.json())
       .then(data => setFarms(data))
       .catch(err => console.error("API not running yet:", err));

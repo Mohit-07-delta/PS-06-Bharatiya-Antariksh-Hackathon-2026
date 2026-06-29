@@ -11,7 +11,7 @@ export default function Dashboard() {
   const handleAnalyze = async (farmId) => {
     setSelectedFarm(farmId);
     // Fetch mock ML data from FastAPI
-    const res = await fetch(`http://localhost:8000/api/analyze/${farmId}`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/analyze/${farmId}`);
     const data = await res.json();
     setAnalysisResult(data);
   };
