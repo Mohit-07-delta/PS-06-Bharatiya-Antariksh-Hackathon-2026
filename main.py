@@ -32,45 +32,68 @@ def get_farms():
 
 @app.get("/api/analyze/{farm_id}")
 def analyze_farm(farm_id: str):
-    # 1. Simulate extracting satellite features for the selected farm
-    ndvi = random.uniform(0.3, 0.85)
-    ndwi = random.uniform(-0.2, 0.4)
-    sar_vv = random.uniform(-18, -8)
-    sar_vh = random.uniform(-25, -12)
-    
-    # 2. RUN ACTUAL ML PREDICTION
-    if rf_model:
-        features = np.array([[ndvi, ndwi, sar_vv, sar_vh]])
-        predicted_crop = rf_model.predict(features)[0]
-        
-        # Get probability (confidence score)
-        probabilities = rf_model.predict_proba(features)[0]
-        confidence = round(max(probabilities) * 100, 1)
+    # 1. Mock ML Classification Output
+    if farm_id == "farm_2":
+        predicted_crop = "Soybean"
+        growth_stage = "Flowering"
+        rainfall_8_day = 0.0  # mm
     else:
-        predicted_crop = "Unknown"
-        confidence = 0.0
+        predicted_crop = "Wheat"
+        growth_stage = "Vegetative"
+        rainfall_8_day = 20.0  # mm
+        
+    # Simulated confidence
+    confidence = random.uniform(0.85, 0.98)
 
-    # 3. Moisture & Rule Engine
-    # Convert NDWI directly to a mock moisture percentage
-    moisture = int((ndwi + 0.5) * 100) 
-    growth_stage = "Flowering" if ndvi > 0.6 else "Vegetative"
+    # 2. FAO-56 Calculations
+    kc_dict = {
+        "Wheat": {"Vegetative": 0.8},
+        "Soybean": {"Flowering": 1.15}
+    }
+    
+    # Get the Crop Coefficient (Kc) for the specific crop and stage
+    kc = kc_dict.get(predicted_crop, {}).get(growth_stage, 1.0)
+    
+    # Simulate a daily Reference Evapotranspiration (ET0) between 4.5 and 6.5 mm/day
+    daily_et0 = random.uniform(4.5, 6.5)
+    
+    # Calculate 8-Day ETc (Crop Evapotranspiration / Water Requirement)
+    etc_8_day = 8 * (daily_et0 * kc)
+    
+    # Calculate Water Deficit: Max(0, ETc - Rainfall)
+    water_deficit_mm = max(0.0, etc_8_day - rainfall_8_day)
 
-    if moisture >= 50:
+    # 3. Rule Engine Output
+    if water_deficit_mm <= 0:
         stress_level = "Healthy"
-        recommendation = f"Moisture is optimal. {predicted_crop} is healthy."
-    elif 35 <= moisture < 50:
+        recommendation = f"{predicted_crop} ({growth_stage}): Optimal moisture. No irrigation needed. Surplus rainfall detected."
+    elif 0 < water_deficit_mm <= 15:
+        stress_level = "Low"
+        recommendation = f"{predicted_crop} ({growth_stage}): Mild deficit ({water_deficit_mm:.1f} mm). Monitor soil moisture closely; no immediate irrigation required."
+    elif 15 < water_deficit_mm <= 30:
         stress_level = "Medium"
-        recommendation = f"Monitor closely. Plan to irrigate {predicted_crop} in 2-3 days."
+        recommendation = f"{predicted_crop} ({growth_stage}): Moderate stress detected ({water_deficit_mm:.1f} mm deficit). Plan to irrigate in the next 2-3 days."
     else:
         stress_level = "High"
-        recommendation = f"CRITICAL: {predicted_crop} is in {growth_stage} stage with low moisture. Irrigate 25 mm immediately."
+        recommendation = f"CRITICAL: {predicted_crop} ({growth_stage}) is facing severe water stress ({water_deficit_mm:.1f} mm deficit). Irrigate immediately to prevent yield loss."
+
+    # Simulated NDWI-based moisture percent for backward compatibility with frontend
+    if stress_level == "Healthy":
+        moisture = random.randint(60, 80)
+    elif stress_level == "Low":
+        moisture = random.randint(45, 59)
+    elif stress_level == "Medium":
+        moisture = random.randint(30, 44)
+    else:
+        moisture = random.randint(15, 29)
 
     return {
         "farm_id": farm_id,
         "crop": predicted_crop,
-        "confidence": confidence / 100,  # Frontend expects a decimal
+        "confidence": round(confidence, 2),
         "moisture_percent": moisture,
         "stress_level": stress_level,
         "growth_stage": growth_stage,
+        "water_deficit_mm": round(water_deficit_mm, 2),
         "recommendation": recommendation
     }
