@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
+import HistoryChart from '../components/HistoryChart';
 
 // Disables SSR for the map component
 const MapWidget = dynamic(() => import('../components/MapWidget'), { ssr: false });
@@ -33,10 +34,11 @@ export default function Dashboard() {
               <p><strong>Growth Stage:</strong> {analysisResult.growth_stage}</p>
               <p>
                 <strong>Stress Level:</strong> 
-                <span className={`ml-2 px-2 py-1 rounded text-white ${analysisResult.stress_level === 'High' ? 'bg-red-500' : 'bg-green-500'}`}>
+                <span className={`ml-2 px-2 py-1 rounded text-white ${analysisResult.stress_level === 'High' ? 'bg-red-500' : analysisResult.stress_level === 'Medium' ? 'bg-orange-500' : analysisResult.stress_level === 'Low' ? 'bg-yellow-500' : 'bg-green-500'}`}>
                   {analysisResult.stress_level}
                 </span>
               </p>
+              <p><strong>Water Deficit (FAO-56):</strong> {analysisResult.water_deficit_mm} mm</p>
               <div className="mt-4 p-4 bg-blue-100 rounded-lg text-blue-900 border border-blue-200">
                 <strong>AI Recommendation:</strong><br/>
                 {analysisResult.recommendation}
@@ -47,6 +49,13 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      
+      {/* Time-Series Visualization */}
+      {selectedFarm && (
+        <div className="mt-8">
+          <HistoryChart farmId={selectedFarm} />
+        </div>
+      )}
     </div>
   );
 }
