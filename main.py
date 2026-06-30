@@ -4,6 +4,9 @@ import random
 import joblib
 import numpy as np
 
+import pandas as pd
+import json
+
 app = FastAPI(title="AgriSense AI API")
 
 # Allow Next.js frontend to communicate with this backend
@@ -22,45 +25,42 @@ except Exception as e:
     print("Warning: Model not found. Run train_model.py first.")
     rf_model = None
 
-@app.get("/api/farms")
-def get_farms():
-    """Returns a list of dummy farms to populate the map."""
-    return [
-        {"id": "farm_1", "name": "North Field", "crop": "Wheat", "lat": 23.25, "lng": 77.40},
-        {"id": "farm_2", "name": "South Field", "crop": "Soybean", "lat": 23.32, "lng": 77.48}
-    ]
+# LOAD CONFIG
+try:
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+        kc_dict = config.get("kc_dict", {})
+except Exception as e:
+    print("Warning: config.json not found.")
+    kc_dict = {"Wheat": {"Vegetative": 0.8}, "Soybean": {"Flowering": 1.15}}
 
-@app.get("/api/analyze/{farm_id}")
-def analyze_farm(farm_id: str):
-    # 1. Mock ML Classification Output
-    if farm_id == "farm_2":
-        predicted_crop = "Soybean"
+def get_farm_analysis(farm_id: str):
+    # 1. Real ML Pipeline Inference
+    if rf_model:
+        if farm_id == "farm_2":
+            features_dict = {'NDVI': [0.75], 'NDWI': [0.15], 'SAR_VV': [-10.0], 'SAR_VH': [-15.0]}
+        else:
+            features_dict = {'NDVI': [0.45], 'NDWI': [-0.10], 'SAR_VV': [-8.0], 'SAR_VH': [-20.0]}
+            
+        features_df = pd.DataFrame(features_dict)
+        predicted_crop = rf_model.predict(features_df)[0]
+        confidence = float(max(rf_model.predict_proba(features_df)[0]))
+    else:
+        predicted_crop = "Soybean" if farm_id == "farm_2" else "Wheat"
+        confidence = random.uniform(0.85, 0.98)
+
+    # Growth stage mapping and dummy rainfall
+    if predicted_crop == "Soybean":
         growth_stage = "Flowering"
         rainfall_8_day = 0.0  # mm
     else:
-        predicted_crop = "Wheat"
         growth_stage = "Vegetative"
         rainfall_8_day = 20.0  # mm
-        
-    # Simulated confidence
-    confidence = random.uniform(0.85, 0.98)
 
     # 2. FAO-56 Calculations
-    kc_dict = {
-        "Wheat": {"Vegetative": 0.8},
-        "Soybean": {"Flowering": 1.15}
-    }
-    
-    # Get the Crop Coefficient (Kc) for the specific crop and stage
     kc = kc_dict.get(predicted_crop, {}).get(growth_stage, 1.0)
-    
-    # Simulate a daily Reference Evapotranspiration (ET0) between 4.5 and 6.5 mm/day
     daily_et0 = random.uniform(4.5, 6.5)
-    
-    # Calculate 8-Day ETc (Crop Evapotranspiration / Water Requirement)
     etc_8_day = 8 * (daily_et0 * kc)
-    
-    # Calculate Water Deficit: Max(0, ETc - Rainfall)
     water_deficit_mm = max(0.0, etc_8_day - rainfall_8_day)
 
     # 3. Rule Engine Output
@@ -77,7 +77,6 @@ def analyze_farm(farm_id: str):
         stress_level = "High"
         recommendation = f"CRITICAL: {predicted_crop} ({growth_stage}) is facing severe water stress ({water_deficit_mm:.1f} mm deficit). Irrigate immediately to prevent yield loss."
 
-    # Simulated NDWI-based moisture percent for backward compatibility with frontend
     if stress_level == "Healthy":
         moisture = random.randint(60, 80)
     elif stress_level == "Low":
@@ -97,3 +96,21 @@ def analyze_farm(farm_id: str):
         "water_deficit_mm": round(water_deficit_mm, 2),
         "recommendation": recommendation
     }
+
+@app.get("/api/farms")
+def get_farms():
+    """Returns aggregated farm data with stress levels."""
+    farms = [
+        {"id": "farm_1", "name": "North Field", "lat": 23.25, "lng": 77.40},
+        {"id": "farm_2", "name": "South Field", "lat": 23.32, "lng": 77.48}
+    ]
+    # Append analysis dynamically
+    for farm in farms:
+        analysis = get_farm_analysis(farm["id"])
+        farm["crop"] = analysis["crop"]
+        farm["stress_level"] = analysis["stress_level"]
+    return farms
+
+@app.get("/api/analyze/{farm_id}")
+def analyze_farm(farm_id: str):
+    return get_farm_analysis(farm_id)

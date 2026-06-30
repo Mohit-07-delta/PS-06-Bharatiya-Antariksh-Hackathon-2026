@@ -1,0 +1,10 @@
+{
+  "kc_dict": {
+    "Wheat": {
+      "Vegetative": 0.8
+    },
+    "Soybean": {
+      "Flowering": 1.15
+    }
+  }
+}

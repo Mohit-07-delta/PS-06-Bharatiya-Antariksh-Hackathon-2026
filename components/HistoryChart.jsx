@@ -11,8 +11,7 @@ import {
 } from 'recharts';
 
 export default function HistoryChart({ farmId }) {
-  // Generate mock time-series data based on the farm
-  const generateData = () => {
+  const data = React.useMemo(() => {
     const isFarm2 = farmId === "farm_2";
     return [
       {
@@ -36,9 +35,7 @@ export default function HistoryChart({ farmId }) {
         etc: isFarm2 ? 42.6 : 11.76,
       },
     ];
-  };
-
-  const data = generateData();
+  }, [farmId]);
 
   return (
     <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginTop: '20px' }}>

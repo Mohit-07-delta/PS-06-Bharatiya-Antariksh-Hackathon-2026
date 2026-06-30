@@ -1,5 +1,5 @@
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import HistoryChart from '../components/HistoryChart';
 
 // Disables Server-Side Rendering for the Leaflet map component
@@ -9,8 +9,12 @@ export default function Dashboard() {
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const timeoutRef = useRef(null);
 
   const handleAnalyze = async (farmId) => {
+    // Clear any pending timeout from previous rapid clicks
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    
     setSelectedFarm(farmId);
     setIsAnalyzing(true);
     setAnalysisResult(null);
@@ -22,7 +26,7 @@ export default function Dashboard() {
       const data = await res.json();
       
       // Simulate satellite processing delay for visual effect during the demo
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setAnalysisResult(data);
         setIsAnalyzing(false);
       }, 1200); 

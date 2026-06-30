@@ -10,18 +10,9 @@ export default function MapWidget({ onFarmSelect }) {
     // Fetch the mock farms from your FastAPI backend
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/farms`)
       .then(res => res.json())
-      .then(async data => {
-        // Fetch stress analysis for each farm to color-code the map
-        const farmsWithAnalysis = await Promise.all(data.map(async (farm) => {
-          try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/analyze/${farm.id}`);
-            const analysis = await res.json();
-            return { ...farm, stress_level: analysis.stress_level };
-          } catch (e) {
-            return { ...farm, stress_level: 'Unknown' };
-          }
-        }));
-        setFarms(farmsWithAnalysis);
+      .then(data => {
+        // The backend now returns stress_level and crop directly in the payload!
+        setFarms(data);
       })
       .catch(err => console.error("API not running yet:", err));
   }, []);
