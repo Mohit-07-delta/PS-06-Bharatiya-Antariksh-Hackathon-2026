@@ -42,6 +42,9 @@ def get_farm_analysis(farm_id: str):
         else:
             features_dict = {'NDVI': [0.45], 'NDWI': [-0.10], 'SAR_VV': [-8.0], 'SAR_VH': [-20.0]}
             
+        # Calculate SAR Ratio required for the model
+        features_dict['SAR_Ratio'] = [features_dict['SAR_VH'][0] / features_dict['SAR_VV'][0]]
+            
         features_df = pd.DataFrame(features_dict)
         predicted_crop = rf_model.predict(features_df)[0]
         confidence = float(max(rf_model.predict_proba(features_df)[0]))

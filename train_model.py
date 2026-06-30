@@ -12,20 +12,22 @@ data = {
     'SAR_VV': np.random.uniform(-20, -5, 1000),
     'SAR_VH': np.random.uniform(-30, -10, 1000),
 }
+# PS-06 Specific Requirement: SAR VH/VV Ratio
+data['SAR_Ratio'] = data['SAR_VH'] / data['SAR_VV']
 df = pd.DataFrame(data)
 
 # Rule-based target generation for training
 # If high NDVI and specific SAR, label as 'Soybean', else 'Wheat', etc.
 conditions = [
     (df['NDVI'] > 0.6) & (df['NDWI'] > 0.1),
-    (df['NDVI'] <= 0.6) & (df['SAR_VV'] > -12)
+    (df['NDVI'] <= 0.6) & (df['SAR_Ratio'] > 1.5)
 ]
 choices = ['Soybean', 'Wheat']
 df['Crop_Type'] = np.select(conditions, choices, default='Cotton')
 
 # Train the Model
 print("Training Random Forest Classifier...")
-X = df[['NDVI', 'NDWI', 'SAR_VV', 'SAR_VH']]
+X = df[['NDVI', 'NDWI', 'SAR_VV', 'SAR_VH', 'SAR_Ratio']]
 y = df['Crop_Type']
 
 model = RandomForestClassifier(n_estimators=50, random_state=42)
