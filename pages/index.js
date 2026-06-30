@@ -17,7 +17,7 @@ export default function Dashboard() {
 
     try {
       // Connects to your live Render API or local backend
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       const res = await fetch(`${API_URL}/api/analyze/${farmId}`);
       const data = await res.json();
       

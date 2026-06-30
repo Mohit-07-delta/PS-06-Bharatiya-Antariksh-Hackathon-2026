@@ -8,13 +8,13 @@ export default function MapWidget({ onFarmSelect }) {
 
   useEffect(() => {
     // Fetch the mock farms from your FastAPI backend
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/farms`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/farms`)
       .then(res => res.json())
       .then(async data => {
         // Fetch stress analysis for each farm to color-code the map
         const farmsWithAnalysis = await Promise.all(data.map(async (farm) => {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/analyze/${farm.id}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/analyze/${farm.id}`);
             const analysis = await res.json();
             return { ...farm, stress_level: analysis.stress_level };
           } catch (e) {
