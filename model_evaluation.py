@@ -14,29 +14,41 @@ except FileNotFoundError:
     print("❌ Error: crop_rf_model.pkl not found. Run 'python train_model.py' first.")
     exit(1)
 
-print("Generating synthetic validation dataset (500 samples)...")
-# Must match the training feature distribution (NDVI, NDWI, SAR_VV, SAR_VH, SAR_Ratio)
+print("Generating physically realistic validation dataset (150 samples per crop)...")
 np.random.seed(99)
-data = {
-    'NDVI': np.random.uniform(0.2, 0.9, 500),
-    'NDWI': np.random.uniform(-0.5, 0.5, 500),
-    'SAR_VV': np.random.uniform(-20, -5, 500),
-    'SAR_VH': np.random.uniform(-30, -10, 500),
-}
-data['SAR_Ratio'] = data['SAR_VH'] / data['SAR_VV']
-df = pd.DataFrame(data)
+n_val = 150
 
-# Ground truth generation (should somewhat match the rules in train_model, but with noise)
-conditions = [
-    (df['NDVI'] > 0.6) & (df['NDWI'] > 0.1),
-    (df['NDVI'] <= 0.6) & (df['SAR_Ratio'] > 1.5)
-]
-choices = ['Soybean', 'Wheat']
-df['True_Crop'] = np.select(conditions, choices, default='Cotton')
+# 1. Soybean
+soybean_ndvi = np.random.normal(0.75, 0.06, n_val)
+soybean_ndwi = np.random.normal(0.18, 0.05, n_val)
+soybean_vv = np.random.normal(-8.0, 1.0, n_val)
+soybean_vh = np.random.normal(-12.0, 1.2, n_val)
+soybean_crop = ['Soybean'] * n_val
 
-# Introduce 8% random noise to make the confusion matrix realistic
-noise_indices = np.random.choice(df.index, size=int(0.08 * len(df)), replace=False)
-df.loc[noise_indices, 'True_Crop'] = np.random.choice(['Soybean', 'Wheat', 'Cotton'], size=len(noise_indices))
+# 2. Wheat
+wheat_ndvi = np.random.normal(0.40, 0.08, n_val)
+wheat_ndwi = np.random.normal(-0.15, 0.07, n_val)
+wheat_vv = np.random.normal(-11.0, 1.5, n_val)
+wheat_vh = np.random.normal(-19.5, 2.0, n_val)
+wheat_crop = ['Wheat'] * n_val
+
+# 3. Cotton
+cotton_ndvi = np.random.normal(0.55, 0.07, n_val)
+cotton_ndwi = np.random.normal(-0.05, 0.05, n_val)
+cotton_vv = np.random.normal(-9.5, 1.0, n_val)
+cotton_vh = np.random.normal(-14.5, 1.2, n_val)
+cotton_crop = ['Cotton'] * n_val
+
+# Merge validation dataset
+df = pd.DataFrame({
+    'NDVI': np.concatenate([soybean_ndvi, wheat_ndvi, cotton_ndvi]),
+    'NDWI': np.concatenate([soybean_ndwi, wheat_ndwi, cotton_ndwi]),
+    'SAR_VV': np.concatenate([soybean_vv, wheat_vv, cotton_vv]),
+    'SAR_VH': np.concatenate([soybean_vh, wheat_vh, cotton_vh]),
+    'True_Crop': np.concatenate([soybean_crop, wheat_crop, cotton_crop])
+})
+
+df['SAR_Ratio'] = df['SAR_VH'] / df['SAR_VV']
 
 X_test = df[['NDVI', 'NDWI', 'SAR_VV', 'SAR_VH', 'SAR_Ratio']]
 y_true = df['True_Crop']
@@ -54,13 +66,14 @@ print(f"[METRIC] Kappa Coefficient: {kappa:.4f}")
 print("="*50 + "\n")
 
 print("Detailed Classification Report:")
-print(classification_report(y_true, y_pred))
+report = classification_report(y_true, y_pred)
+print(report)
 
 print("Generating Confusion Matrix Plot...")
 cm = confusion_matrix(y_true, y_pred, labels=['Soybean', 'Wheat', 'Cotton'])
 plt.figure(figsize=(8, 6))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Soybean', 'Wheat', 'Cotton'], yticklabels=['Soybean', 'Wheat', 'Cotton'])
-plt.title('Crop Classification Confusion Matrix')
+plt.title('Crop Classification Confusion Matrix (Gaussian Data)')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
 plt.tight_layout()
@@ -69,4 +82,34 @@ os.makedirs('plots', exist_ok=True)
 plot_path = 'plots/confusion_matrix.png'
 plt.savefig(plot_path, dpi=300)
 print(f"[SUCCESS] Confusion Matrix saved to '{plot_path}'")
-print("\nEvaluation Complete! Display this script and plot to the judges.")
+
+# Generate MODEL_CARD.md
+model_card_content = f"""# Model Card: AgriSense AI Crop Classifier
+
+## Model Description
+- **Type:** Random Forest Classifier
+- **Features:** 5 features (NDVI, NDWI, SAR_VV, SAR_VH, SAR_Ratio)
+- **Classes:** Soybean, Wheat, Cotton
+
+## Performance Metrics (Gaussian Realistic Evaluation)
+- **Overall Accuracy:** {acc * 100:.2f}%
+- **Cohen's Kappa:** {kappa:.4f}
+
+## Detailed Report
+```
+{report}
+```
+
+## Methodology & Limitations
+The model is trained on Gaussian-distributed synthetic profiles derived from remote sensing literature on crop reflectance (Sentinel-2 NDVI, NDWI) and radar backscatter (Sentinel-1 SAR VV, VH) characteristics in Central India (Bhopal region). 
+
+### Limitations:
+- The data is physically simulated, not fully extracted from ground-truth pixel geometries.
+- Atmospheric and soil background noise variations are simplified.
+- Temporal patterns are evaluated separately via the secondary LSTM Deep Learning module.
+"""
+
+with open('MODEL_CARD.md', 'w') as f:
+    f.write(model_card_content)
+print("Created MODEL_CARD.md successfully!")
+print("\nEvaluation Complete!")

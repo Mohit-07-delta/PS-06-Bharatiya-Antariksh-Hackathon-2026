@@ -1,138 +1,248 @@
-import dynamic from 'next/dynamic';
-import { useState, useRef } from 'react';
-import HistoryChart from '../components/HistoryChart';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { StatCard, Card } from '../components/UI';
+import { useDataStatus, useFarms } from '../hooks/useApi';
 
-// Disables Server-Side Rendering for the Leaflet map component
-const MapWidget = dynamic(() => import('../components/MapWidget'), { ssr: false });
+export default function Home() {
+  const { status } = useDataStatus();
+  const { farms } = useFarms();
+  const [totalFields, setTotalFields] = useState(0);
+  const [avgStress, setAvgStress] = useState('—');
 
-export default function Dashboard() {
-  const [selectedFarm, setSelectedFarm] = useState(null);
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const timeoutRef = useRef(null);
-
-  const handleAnalyze = async (farmId) => {
-    // Clear any pending timeout from previous rapid clicks
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
-    setSelectedFarm(farmId);
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-
-    try {
-      // Connects to your live Render API or local backend
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const res = await fetch(`${API_URL}/api/analyze/${farmId}`);
-      const data = await res.json();
-      
-      // Simulate satellite processing delay for visual effect during the demo
-      timeoutRef.current = setTimeout(() => {
-        setAnalysisResult(data);
-        setIsAnalyzing(false);
-      }, 1200); 
-      
-    } catch (error) {
-      console.error("Analysis failed:", error);
-      setIsAnalyzing(false);
+  useEffect(() => {
+    if (farms && farms.length > 0) {
+      setTotalFields(farms.length);
     }
-  };
+  }, [farms]);
 
-  // UI Helpers for dynamic color coding
-  const getStressColor = (level) => {
-    if (level === 'High') return 'bg-red-100 text-red-800 border-red-300';
-    if (level === 'Medium') return 'bg-orange-100 text-orange-800 border-orange-300';
-    if (level === 'Low') return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    return 'bg-green-100 text-green-800 border-green-300';
+  const getDataStatusLabel = () => {
+    if (!status) return 'FALLBACK';
+    return status.satellite_data || 'FALLBACK';
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans p-6">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-green-800 tracking-tight">AgriSense AI Dashboard</h1>
-          <p className="text-gray-600 mt-2">Automated Crop Type, Moisture Stress & Irrigation Advisory System</p>
-        </header>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
+      {/* Hero Section */}
+      <div style={{
+        paddingTop: '80px',
+        paddingBottom: '80px',
+        background: `linear-gradient(135deg, rgba(15,76,53,0.3) 0%, rgba(13,212,207,0.05) 100%)`
+      }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <div style={{ fontSize: '64px', marginBottom: '20px' }}>🛰</div>
+            <h1 style={{
+              fontSize: 'var(--text-5xl)',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: '12px',
+              letterSpacing: '-0.02em'
+            }}>
+              AgriSense AI
+            </h1>
+            <p style={{
+              fontSize: 'var(--text-lg)',
+              color: 'var(--text-secondary)',
+              marginBottom: '24px',
+              maxWidth: '700px',
+              margin: '0 auto 24px'
+            }}>
+              Multi-Spectral Satellite Crop Intelligence for Precision Agriculture
+            </p>
+            <p style={{
+              fontSize: 'var(--text-base)',
+              color: 'var(--text-muted)',
+              marginBottom: '40px',
+              maxWidth: '800px',
+              margin: '0 auto 40px',
+              lineHeight: 1.6
+            }}>
+              AgriSense AI fuses <strong>optical and SAR satellite data</strong> to classify crop type, track phenological growth stage, and generate stage-aware FAO-56 irrigation advisories. Powered by Random Forest + LSTM Deep Learning dual validation.
+            </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Map */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-200">
-              <MapWidget onFarmSelect={handleAnalyze} analysisResult={analysisResult} />
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/dashboard" className="btn btn-primary btn-lg">
+                Live Dashboard →
+              </Link>
+              <Link href="/methodology" className="btn btn-outline btn-lg">
+                Learn More
+              </Link>
             </div>
-            
-            {/* Time-Series Visualization (Only show if a farm is selected) */}
-            {selectedFarm && !isAnalyzing && analysisResult && (
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                <HistoryChart farmId={selectedFarm} />
+          </div>
+
+          {/* Methodology Strip */}
+          <Card style={{ maxWidth: '900px', margin: '0 auto', background: 'rgba(13,212,207,0.04)', borderColor: 'rgba(13,212,207,0.2)' }}>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-8)' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: 'var(--space-2)' }}>🌾</div>
+                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>Optical Bands</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Sentinel-2 NDVI, NDWI, RGB indices</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: 'var(--space-2)' }}>📡</div>
+                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>SAR Radar</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Sentinel-1/EOS-4 VV/VH polarization</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: 'var(--space-2)' }}>🧬</div>
+                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>Fusion</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>VMFI index + deep learning ensemble</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: 'var(--space-2)' }}>💧</div>
+                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>Advisory</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>FAO-56 Kc-based irrigation scheduling</p>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Right Column: Analysis Panel */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            <div className="bg-green-700 p-4">
-              <h2 className="text-xl font-semibold text-white">Field Analysis Report</h2>
             </div>
-            
-            <div className="p-6 flex-grow">
-              {!selectedFarm && !isAnalyzing && (
-                <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center space-y-4 py-12">
-                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-                  <p>Select a field marker on the map to begin satellite analysis.</p>
-                </div>
-              )}
+          </Card>
+        </div>
+      </div>
 
-              {isAnalyzing && (
-                <div className="h-full flex flex-col items-center justify-center space-y-6 py-12">
-                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-600"></div>
-                  <p className="text-gray-600 font-medium animate-pulse">Processing Multi-Spectral Satellite Imagery...</p>
-                </div>
-              )}
+      {/* Stats Section */}
+      <div className="container" style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-12)' }}>
+        <h2 style={{
+          fontSize: 'var(--text-3xl)',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          textAlign: 'center',
+          marginBottom: 'var(--space-10)'
+        }}>
+          Live Monitoring Network
+        </h2>
 
-              {analysisResult && !isAnalyzing && (
-                <div className="space-y-6">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h3 className="text-2xl font-bold text-gray-800">{analysisResult.farm_id === 'farm_1' ? 'North Field' : 'South Field'}</h3>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mt-1">ID: {analysisResult.farm_id}</p>
-                  </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)', marginBottom: 'var(--space-12)' }}>
+          <StatCard label="Total Fields" value={totalFields} subtext="Active monitoring" icon="🗺" />
+          <StatCard label="Data Status" value={getDataStatusLabel()} subtext="Satellite data freshness" icon="📡" />
+          <StatCard label="Models" value="2" subtext="RF + LSTM ensemble" icon="🧠" />
+          <StatCard label="Coverage" value="NISAR-ready" subtext="Future-proof architecture" icon="🔭" />
+        </div>
 
-                  {/* 4-Column Metrics Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Crop Detected</p>
-                      <p className="text-lg font-bold text-gray-900">{analysisResult.crop}</p>
-                      <p className="text-xs text-green-600 mt-1">{(analysisResult.confidence * 100).toFixed(0)}% Match</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Growth Stage</p>
-                      <p className="text-lg font-bold text-gray-900">{analysisResult.growth_stage}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Water Deficit (ETc)</p>
-                      <p className="text-lg font-bold text-gray-900">{analysisResult.water_deficit_mm} mm</p>
-                    </div>
-                    <div className={`p-4 rounded-xl border ${getStressColor(analysisResult.stress_level)}`}>
-                      <p className="text-xs uppercase font-semibold mb-1 opacity-80">Moisture Stress</p>
-                      <p className="text-lg font-bold">{analysisResult.stress_level}</p>
-                    </div>
-                  </div>
-
-                  {/* Recommendation Box */}
-                  <div className="mt-6">
-                    <h4 className="text-sm font-bold text-gray-700 uppercase mb-2">AI Irrigation Advisory</h4>
-                    <div className={`p-5 rounded-xl border ${analysisResult.stress_level === 'High' ? 'bg-red-50 border-red-200 text-red-900' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
-                      <div className="flex items-start gap-3">
-                        <svg className="w-6 h-6 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <p className="font-medium leading-relaxed">{analysisResult.recommendation}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+        {/* Feature Highlights */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-6)' }}>
+          <Card>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ fontSize: '32px', marginBottom: 'var(--space-3)' }}>🌱</div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+                Growth Stage Tracking
+              </h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Map phenological stages from Sowing to Maturity using spectral band evolution and temporal analysis.
+              </p>
             </div>
-          </div>
+          </Card>
+
+          <Card>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ fontSize: '32px', marginBottom: 'var(--space-3)' }}>💧</div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+                Smart Irrigation
+              </h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Stage-aware FAO-56 crop coefficient scheduling with real-time moisture stress detection.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ fontSize: '32px', marginBottom: 'var(--space-3)' }}>🧪</div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+                Dual Validation
+              </h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Random Forest crop classification validated by LSTM deep learning with ensemble confidence scoring.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ fontSize: '32px', marginBottom: 'var(--space-3)' }}>🔭</div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+                NISAR Ready
+              </h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Architecture compatible with NASA-ISRO NISAR mission for next-gen SAR data integration.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ fontSize: '32px', marginBottom: 'var(--space-3)' }}>📊</div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+                4-Week Trends
+              </h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Visualize soil moisture, ET demand, and rainfall evolution with interpolated satellite observations.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div style={{ padding: 'var(--space-6)' }}>
+              <div style={{ fontSize: '32px', marginBottom: 'var(--space-3)' }}>⚡</div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+                Real-Time Analysis
+              </h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Live satellite data fusion with instant crop classification and irrigation advisory generation.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div style={{
+        background: `linear-gradient(135deg, rgba(15,76,53,0.2) 0%, rgba(13,212,207,0.08) 100%)`,
+        paddingTop: 'var(--space-12)',
+        paddingBottom: 'var(--space-12)',
+        textAlign: 'center'
+      }}>
+        <div className="container">
+          <h2 style={{
+            fontSize: 'var(--text-3xl)',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: 'var(--space-3)'
+          }}>
+            Ready to Monitor Your Fields?
+          </h2>
+          <p style={{
+            fontSize: 'var(--text-base)',
+            color: 'var(--text-secondary)',
+            marginBottom: 'var(--space-6)',
+            maxWidth: '600px',
+            margin: '0 auto var(--space-6)'
+          }}>
+            Access the live dashboard to analyze your fields with real satellite data and AI-powered irrigation guidance.
+          </p>
+          <Link href="/dashboard" className="btn btn-primary btn-lg">
+            Launch Dashboard →
+          </Link>
+        </div>
+      </div>
+
+      {/* Footer Navigation */}
+      <div style={{
+        borderTop: '1px solid var(--border-subtle)',
+        paddingTop: 'var(--space-6)',
+        paddingBottom: 'var(--space-6)'
+      }}>
+        <div className="container" style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-6)' }}>
+          <Link href="/methodology" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 'var(--text-sm)' }}>
+            Science & Methodology →
+          </Link>
+          <span style={{ color: 'var(--border-subtle)' }}>·</span>
+          <Link href="/about" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 'var(--text-sm)' }}>
+            About & Team →
+          </Link>
         </div>
       </div>
     </div>
   );
 }
+

@@ -38,6 +38,80 @@ def generate_ground_truth():
     df = pd.DataFrame(data)
     df.to_csv('data/ground_truth_labels.csv', index=False)
     print("[SUCCESS] Ground truth labels saved to data/ground_truth_labels.csv")
+    return df
+
+def generate_satellite_cache(ground_truth_df=None):
+    import json
+    print("Generating queryable satellite band statistics cache...")
+    if ground_truth_df is None:
+        try:
+            ground_truth_df = pd.read_csv('data/ground_truth_labels.csv')
+        except FileNotFoundError:
+            ground_truth_df = pd.DataFrame([
+                {'farm_id': 'farm_1', 'crop_type': 'Wheat'},
+                {'farm_id': 'farm_2', 'crop_type': 'Soybean'}
+            ])
+            
+    cache = {}
+    
+    # We want realistic data curves per crop
+    # farm_1 and farm_2 must have exact specific profiles to match historical assumptions in UI
+    for _, row in ground_truth_df.iterrows():
+        farm_id = row['farm_id']
+        crop = row['crop_type']
+        
+        # Base profiles with noise
+        if farm_id == 'farm_1':
+            cache[farm_id] = [
+                {"week": "Week 1", "NDVI": 0.20, "NDWI": -0.35, "SAR_VV": -15.0, "SAR_VH": -25.0, "SAR_Ratio": 1.67},
+                {"week": "Week 2", "NDVI": 0.28, "NDWI": -0.28, "SAR_VV": -13.0, "SAR_VH": -22.0, "SAR_Ratio": 1.69},
+                {"week": "Week 3", "NDVI": 0.38, "NDWI": -0.18, "SAR_VV": -10.0, "SAR_VH": -19.0, "SAR_Ratio": 1.90},
+                {"week": "Week 4", "NDVI": 0.48, "NDWI": -0.08, "SAR_VV": -8.5, "SAR_VH": -17.0, "SAR_Ratio": 2.00}
+            ]
+        elif farm_id == 'farm_2':
+            cache[farm_id] = [
+                {"week": "Week 1", "NDVI": 0.35, "NDWI": -0.10, "SAR_VV": -12.0, "SAR_VH": -20.0, "SAR_Ratio": 1.67},
+                {"week": "Week 2", "NDVI": 0.52, "NDWI": 0.05, "SAR_VV": -10.5, "SAR_VH": -17.0, "SAR_Ratio": 1.62},
+                {"week": "Week 3", "NDVI": 0.68, "NDWI": 0.18, "SAR_VV": -9.0, "SAR_VH": -14.0, "SAR_Ratio": 1.56},
+                {"week": "Week 4", "NDVI": 0.78, "NDWI": 0.22, "SAR_VV": -7.5, "SAR_VH": -11.0, "SAR_Ratio": 1.47}
+            ]
+        else:
+            if crop == 'Wheat':
+                ndvi_base = [0.20, 0.28, 0.38, 0.48]
+                ndwi_base = [-0.35, -0.28, -0.18, -0.08]
+                vv_base = [-15.0, -13.0, -10.0, -8.5]
+                vh_base = [-25.0, -22.0, -19.0, -17.0]
+            elif crop == 'Soybean':
+                ndvi_base = [0.35, 0.52, 0.68, 0.78]
+                ndwi_base = [-0.10, 0.05, 0.18, 0.22]
+                vv_base = [-12.0, -10.5, -9.0, -7.5]
+                vh_base = [-20.0, -17.0, -14.0, -11.0]
+            else: # Cotton
+                ndvi_base = [0.25, 0.40, 0.55, 0.60]
+                ndwi_base = [-0.20, -0.12, -0.05, 0.02]
+                vv_base = [-14.0, -11.5, -9.5, -8.0]
+                vh_base = [-22.0, -18.5, -15.0, -13.0]
+                
+            weeks_data = []
+            for w in range(4):
+                ndvi = round(ndvi_base[w] + random.uniform(-0.03, 0.03), 3)
+                ndwi = round(ndwi_base[w] + random.uniform(-0.03, 0.03), 3)
+                vv = round(vv_base[w] + random.uniform(-0.5, 0.5), 2)
+                vh = round(vh_base[w] + random.uniform(-0.5, 0.5), 2)
+                ratio = round(vh / vv, 2)
+                weeks_data.append({
+                    "week": f"Week {w+1}",
+                    "NDVI": ndvi,
+                    "NDWI": ndwi,
+                    "SAR_VV": vv,
+                    "SAR_VH": vh,
+                    "SAR_Ratio": ratio
+                })
+            cache[farm_id] = weeks_data
+
+    with open('data/field_band_statistics.json', 'w') as f:
+        json.dump(cache, f, indent=2)
+    print("[SUCCESS] Satellite cache saved to data/field_band_statistics.json")
 
 def download_resnet_weights():
     print("Downloading Torchvision ResNet18 pre-trained weights...")
@@ -132,7 +206,8 @@ if __name__ == "__main__":
 
     print("=== Starting Offline Data Preparation ===")
     download_weather_data()
-    generate_ground_truth()
+    gt_df = generate_ground_truth()
+    generate_satellite_cache(gt_df)
     download_resnet_weights()
     
     if args.gee:

@@ -1,10 +1,22 @@
 {
   "kc_dict": {
     "Wheat": {
-      "Vegetative": 0.8
+      "Sowing/Germination": 0.3,
+      "Vegetative": 0.8,
+      "Flowering/Peak Vigour": 1.15,
+      "Maturity/Senescence": 0.4
     },
     "Soybean": {
-      "Flowering": 1.15
+      "Sowing/Germination": 0.4,
+      "Vegetative": 0.85,
+      "Flowering/Peak Vigour": 1.15,
+      "Maturity/Senescence": 0.5
+    },
+    "Cotton": {
+      "Sowing/Germination": 0.35,
+      "Vegetative": 0.75,
+      "Flowering/Peak Vigour": 1.20,
+      "Maturity/Senescence": 0.6
     }
   }
 }

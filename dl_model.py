@@ -48,7 +48,12 @@ for epoch in range(1, 11):
     loss.backward()
     optimizer.step()
     
-    time.sleep(0.1) # Simulate training time
+    time.sleep(0.01) # Simulate training time
     print(f"Epoch [{epoch*10}/100], Loss: {loss.item():.4f}, Accuracy: {(np.random.uniform(0.75, 0.95))*100:.1f}%")
+
+import os
+os.makedirs('models', exist_ok=True)
+torch.save(model.state_dict(), 'models/crop_lstm_model.pth')
+print("Saved PyTorch LSTM weights to 'models/crop_lstm_model.pth'")
 
 print("\n[SUCCESS] LSTM Deep Learning Module ready for operational scaling with full Earth Engine Time-Series data.")
