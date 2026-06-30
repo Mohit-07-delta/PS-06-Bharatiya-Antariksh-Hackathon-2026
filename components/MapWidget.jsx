@@ -3,19 +3,29 @@ import 'leaflet/dist/leaflet.css';
 import { useState, useEffect } from 'react';
 import L from 'leaflet';
 
-export default function MapWidget({ onFarmSelect }) {
+export default function MapWidget({ onFarmSelect, analysisResult }) {
   const [farms, setFarms] = useState([]);
 
   useEffect(() => {
-    // Fetch the mock farms from your FastAPI backend
+    // Fetch the basic farm geometries
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/farms`)
       .then(res => res.json())
       .then(data => {
-        // The backend now returns stress_level and crop directly in the payload!
         setFarms(data);
       })
       .catch(err => console.error("API not running yet:", err));
   }, []);
+
+  // Dynamically update the marker color when a field analysis is completed
+  useEffect(() => {
+    if (analysisResult) {
+      setFarms(prevFarms => prevFarms.map(farm => 
+        farm.id === analysisResult.farm_id 
+          ? { ...farm, stress_level: analysisResult.stress_level, crop: analysisResult.crop } 
+          : farm
+      ));
+    }
+  }, [analysisResult]);
 
   const getMarkerIcon = (stressLevel) => {
     let color = 'gray';

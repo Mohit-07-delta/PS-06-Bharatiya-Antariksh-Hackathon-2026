@@ -57,7 +57,7 @@ export default function Dashboard() {
           {/* Left Column: Map */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-200">
-              <MapWidget onFarmSelect={handleAnalyze} />
+              <MapWidget onFarmSelect={handleAnalyze} analysisResult={analysisResult} />
             </div>
             
             {/* Time-Series Visualization (Only show if a farm is selected) */}

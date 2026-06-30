@@ -99,17 +99,11 @@ def get_farm_analysis(farm_id: str):
 
 @app.get("/api/farms")
 def get_farms():
-    """Returns aggregated farm data with stress levels."""
-    farms = [
-        {"id": "farm_1", "name": "North Field", "lat": 23.25, "lng": 77.40},
-        {"id": "farm_2", "name": "South Field", "lat": 23.32, "lng": 77.48}
+    """Returns lightweight farm geometries for the initial map load."""
+    return [
+        {"id": "farm_1", "name": "North Field", "lat": 23.25, "lng": 77.40, "crop": "Unknown", "stress_level": "Unknown"},
+        {"id": "farm_2", "name": "South Field", "lat": 23.32, "lng": 77.48, "crop": "Unknown", "stress_level": "Unknown"}
     ]
-    # Append analysis dynamically
-    for farm in farms:
-        analysis = get_farm_analysis(farm["id"])
-        farm["crop"] = analysis["crop"]
-        farm["stress_level"] = analysis["stress_level"]
-    return farms
 
 @app.get("/api/analyze/{farm_id}")
 def analyze_farm(farm_id: str):
