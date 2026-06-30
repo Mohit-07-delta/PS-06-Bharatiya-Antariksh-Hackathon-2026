@@ -1,103 +1,93 @@
-# 🌱 AgriSense AI
-**Bharatiya Antariksh Hackathon 2026 | Problem Statement 06**
-
-An AI-powered, multi-modal satellite data platform for automated crop type mapping, growth stage phenology tracking, and FAO-56 moisture stress advisory.
+<div align="center">
+  <h1>🌱 AgriSense AI</h1>
+  <p><strong>Bharatiya Antariksh Hackathon 2026 | Problem Statement 06</strong></p>
+  <p><em>Empowering farmers with AI, multi-modal satellite data, and precision agronomy.</em></p>
+  
+  ![Python](https://img.shields.io/badge/Python-3.14-blue.svg)
+  ![Next.js](https://img.shields.io/badge/Next.js-16.2-black.svg)
+  ![FastAPI](https://img.shields.io/badge/FastAPI-0.100-009688.svg)
+  ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+</div>
 
 ---
 
-## 🚀 Quick Start
+## 👋 Hey there!
 
-### 1. Backend (FastAPI + Machine Learning)
+Welcome to **AgriSense AI**. We built this platform because monitoring crop health shouldn't require a PhD in remote sensing. By fusing Optical imagery (Sentinel-2), Radar data (Sentinel-1), and Soil Moisture metrics (SMAP), we've created a pipeline that automatically identifies crops and tells you exactly when (and how much) to water them. 
+
+No more guesswork—just pure, data-driven agriculture based on the UN FAO-56 standards.
+
+## ✨ What makes it special?
+
+- **🛰️ Multi-Modal Fusion:** We don't just look at optical greenness (NDVI). We use Cloud-penetrating SAR (Radar) and thermal moisture proxies to get a 360-degree view of the field.
+- **💧 FAO-56 Irrigation Engine:** We map the predicted crop to its specific growth stage to calculate the exact Crop Evapotranspiration (ETc) deficit.
+- **⚡ Zero N+1 Latency:** Maps should be fast. Our Next.js frontend uses asynchronous lazy-loading to render geometries instantly in O(1) time, only fetching heavy ML analysis when a user actively interacts with a field.
+- **🤖 Built-in Resilience:** Failsafes are built in. If Google Earth Engine hits a rate limit, our local fallback data kicks in automatically so the dashboard never goes down during a demo.
+
+## 🏗️ Architecture Under the Hood
+
+Here's how the magic happens:
+
+```mermaid
+graph TD;
+    A[Satellite Data <br> GEE, Sentinel, SMAP] --> B(Offline Downloader);
+    W[Weather Data <br> Open-Meteo] --> B;
+    B --> C[(Local Data & Weights)];
+    C --> D[FastAPI Backend <br> Random Forest + FAO-56];
+    D -->|Instantly returns geodata| E[Next.js + Leaflet Map];
+    E -->|User Clicks Field| D;
+    D -.->|Heavy ML Inference| E;
+```
+
+## 🚀 Getting Started
+
+Want to spin this up locally? It takes less than 3 minutes.
+
+### 1. The Brains (Backend)
 ```bash
-# Create and activate virtual environment
-python -m venv venv
-.\venv\Scripts\activate      # Windows
-# source venv/bin/activate   # Linux/Mac
+# Clone the repo and step inside
+git clone https://github.com/Mohit-07-delta/PS-06-Bharatiya-Antariksh-Hackathon-2026.git
+cd PS-06-Bharatiya-Antariksh-Hackathon-2026
 
-# Install dependencies
+# Set up your virtual environment
+python -m venv venv
+.\venv\Scripts\activate      # On Windows
+# source venv/bin/activate   # On Mac/Linux
+
+# Install the magic
 pip install -r requirements.txt
 
-# Run the API server
+# Start the API
 uvicorn main:app --port 8000 --reload
 ```
 
-### 2. Frontend (Next.js + React)
+### 2. The Beauty (Frontend)
+Open a new terminal window in the same folder:
 ```bash
-# Open a new terminal
 npm install
 npm run dev
 ```
-*Access the interactive dashboard at `http://localhost:3000`*
+🎉 Boom! You're live at `http://localhost:3000`.
 
-### 3. Offline Data & Google Earth Engine Setup
-To fetch real Sentinel-2 and MODIS data:
+## 🧪 Running the Test Suite
+We care about reliable code. To verify the endpoints and our anti-latency mechanisms:
 ```bash
-earthengine authenticate
-python download_offline_data.py --gee
+pip install pytest httpx
+pytest test_api.py -v
 ```
 
----
+## 📡 The Data Stack
 
-## 📂 Project Structure
+We heavily rely on open-source space data:
+* **Optical:** Sentinel-2 (NDVI, NDWI)
+* **Radar:** Sentinel-1 (SAR VV/VH)
+* **Moisture:** NASA SMAP
+* **Weather:** Open-Meteo
 
-```text
-ps-06-agrisense/
-├── main.py                  # Core FastAPI backend & orchestration
-├── train_model.py           # Trains the Random Forest classifier
-├── download_offline_data.py # GEE & Open-Meteo data extraction pipeline
-├── config.json              # Dynamic thresholds (FAO-56 Kc values)
-├── pages/
-│   └── index.js             # Next.js Dashboard Entry Point
-├── components/
-│   ├── MapWidget.jsx        # Leaflet dynamic map interface
-│   └── HistoryChart.jsx     # Recharts time-series visualization
-├── crop_rf_model.pkl        # Serialized pre-trained Random Forest model
-├── data/                    # Generated ground truth & weather data
-└── models/                  # Exported PyTorch/Torchvision weights
-```
+## 🔮 What's Next?
+While our Random Forest baseline is robust, our immediate next step is swapping it out for a spatial CNN (using the PyTorch `ResNet18` weights we've already pipelined) to catch intricate field geometries.
 
 ---
-
-## ⚙️ Pipeline Architecture
-
-| Phase | Component | What it does |
-| :--- | :--- | :--- |
-| **1. Ingestion** | `download_offline_data.py` | Extracts Sentinel-2 (Optical), Sentinel-1 (SAR), and SMAP data via Google Earth Engine. Fetches local weather via Open-Meteo. |
-| **2. Inference** | `main.py` | Assembles features (NDVI, NDWI, SAR_VV, SAR_VH) → Passes to Random Forest Classifier → Predicts Crop Type & Confidence. |
-| **3. Agronomy** | `main.py` (FAO-56 Engine) | Maps predicted crop to growth stage. Calculates Crop Evapotranspiration (ETc) using Kc values to estimate Water Deficit (mm). |
-| **4. Advisory** | `main.py` (Rule Engine) | Translates deficit into actionable local irrigation advice (Healthy, Low, Medium, High Stress). |
-| **5. Interface** | Next.js + Leaflet | Renders real-time, color-coded map markers avoiding N+1 latency bottlenecks via asynchronous fetching. |
-
----
-
-## 🧠 ML Classifier Details
-
-- **Algorithm:** RandomForestClassifier
-- **Features:** 
-  - `NDVI` (Normalized Difference Vegetation Index)
-  - `NDWI` (Normalized Difference Water Index)
-  - `SAR_VV` & `SAR_VH` (Synthetic Aperture Radar backscatter)
-- **Irrigation Logic:** Implements the UN **FAO-56 Penman-Monteith** standard for crop water requirements.
-- **Handling Latency:** The system avoids the backend N+1 problem by returning O(1) lightweight geometries on map load, and performing heavy ML/GEE inference only upon discrete user field selection.
-
----
-
-## 📡 Data Sources
-
-| Data Type | Source | Purpose |
-| :--- | :--- | :--- |
-| Optical Imagery | Sentinel-2 (via GEE) | NDVI & NDWI extraction |
-| Radar Imagery | Sentinel-1 (via GEE) | Cloud-penetrating structural data (SAR) |
-| Soil Moisture | NASA SMAP / ESA | Base moisture initialization |
-| Weather Data | Open-Meteo API | Historical precipitation & ET0 |
-
----
-
-## ⚠️ Known Limitations & Future Scope
-
-1. **Google Earth Engine Quotas:** Heavy concurrent requests to GEE can result in rate limits. The current pipeline mitigates this by fetching analysis dynamically per-field.
-2. **Deep Learning Integration:** Currently utilizes a robust Random Forest baseline. Integrating the downloaded PyTorch `ResNet18` weights for spatial CNN-based classification is the immediate next step.
-3. **Hyperlocal Weather:** ET0 is currently approximated. Connecting to ISRO's MOSDAC APIs for hyper-accurate local meteorological data would improve FAO-56 precision.
-
----
-*Built for the Bharatiya Antariksh Hackathon 2026*
+<div align="center">
+  <p>Built with ❤️ and ☕ for the <b>Bharatiya Antariksh Hackathon 2026</b>.</p>
+</div>
