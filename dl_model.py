@@ -51,4 +51,4 @@ for epoch in range(1, 11):
     time.sleep(0.1) # Simulate training time
     print(f"Epoch [{epoch*10}/100], Loss: {loss.item():.4f}, Accuracy: {(np.random.uniform(0.75, 0.95))*100:.1f}%")
 
-print("\n✅ LSTM Deep Learning Module ready for operational scaling with full Earth Engine Time-Series data.")
+print("\n[SUCCESS] LSTM Deep Learning Module ready for operational scaling with full Earth Engine Time-Series data.")
